@@ -3,12 +3,12 @@
 
 ; Variable Locations
 
-xaml    = $24                   ; Last opened location lo?
-xamh    = $25                   ; Last opened location hi?
-stl     = $26                   ; Store address lo
-sth     = $27                   ; Store address hi
-l       = $28                   ; Hex value parsing lo
-h       = $29                   ; Hex value parsing hi
+xaml    = $24                   ; Examine index low byte.
+xamh    = $25                   ; Examine index high byte.
+stl     = $26                   ; Store address low byte.
+sth     = $27                   ; Store address high byte.
+l       = $28                   ; Hex value parsing low digit.
+h       = $29                   ; Hex value parsing high digit.
 ysav    = $2A                   ; ?
 mode    = $2B                   ; $00=xam, $7F=stor, $AE=block xam
 
@@ -21,9 +21,9 @@ dspcr   = $D013                 ; PIA.B display control register
 
 ; Modes
 
-xam     = $00
-stor    = $7B
-blokxam = $AE
+xam     = $00                   ; Examine.
+stor    = $7B                   ; Store.
+blokxam = $AE                   ; Block examine.
 
 ; Constants
 
@@ -153,3 +153,58 @@ setadr:
         sta xaml-1,X            ; And to 'XAM index'.
         dex                     ; Next of two bytes.
         bne setadr
+
+nxtprnt:
+        bne prdata              ; ne means no address to print.
+        lda #cr
+        jsr echo
+        lda xamh                ; 'Examine index' high byte.
+        jsr prbyte              ; output in hex format.
+        lda xaml                ; 'Examine index' low byte.
+        jsr prbyte
+        lda #$BA                ; ":".
+        jsr echo
+
+prdata:
+        lda #$A0                ; Blank.
+        jsr echo
+        lda (xaml,X)            ; Get data byte at 'examine index'.
+        jsr prbyte
+
+xamnext:
+        stx mode                ; 0 -> mode (XAM mode).
+        lda xaml
+        cmp l                   ; Compare 'examine index' to hex data.
+        lda xamh
+        sbc h
+        bcs tonextitem          ; Not less, so no more data to output.
+        inc xaml
+        bne mod8chk             ; Increment 'examine index'.
+        inc xamh
+
+mod8chk:
+        lda xaml                ; Check low 'examine index' byte.
+        and #$07                ;   For MOD 8 = 0.
+        bpl nxtprnt             ; Always taken.
+
+prbyte:
+        pha                     ; Save A for LSD.
+        lsr
+        lsr
+        lsr                     ; MSD to LSD position.
+        lsr
+        jsr prhex               ; Output hex digit.
+        pla                     ; Restore A.
+
+prhex:
+        and #$0F                ; Mask LSD for hex print.
+        ora #$B0                ; Add "0" digit.
+        cmp #$BA                ; Digit?
+        bcc echo                ; Yes, output it.
+        adc #$06                ; Add offset for letters.
+
+echo:
+        bit dsp                 ; DA bit (B7) cleared yet?
+        bmi echo                ; No, wait for display.
+        sta dsp                 ; Output character. Sets DA.
+        rts
