@@ -29,7 +29,7 @@ def main() -> None:  # noqa: D103
 
     ram = MemoryBlock(0xD000)
     rom = MemoryBlock(0x2000)
-    with (Path(__file__).parent / "6502_code/bin/echo.bin").open("rb") as f:
+    with (Path(__file__).parent / "6502_code/bin/rom.bin").open("rb") as f:
         rom_contents = f.read()
     for i, b in enumerate(rom_contents):
         rom.write(i, b)
@@ -40,7 +40,10 @@ def main() -> None:  # noqa: D103
     cpu = CPU6502(memory_map)
     start_address = (memory_map.read(0xFFFD) << 8) | memory_map.read(0xFFFC)
     cpu.pc = start_address
-    run(cpu, interrupt_hook=interrupt_hook_with_queue, max_steps=None, cycles_per_second=1000)
+    run(cpu, interrupt_hook=interrupt_hook_with_queue, max_steps=None, cycles_per_second=1e5)
+    print("\r")
+    print(f"A  NV-BDIZC\r")
+    print(f"{cpu.a:02X} {cpu.status:08b}\r")
 
 
 if __name__ == "__main__":

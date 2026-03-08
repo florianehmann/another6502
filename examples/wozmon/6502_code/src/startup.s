@@ -1,5 +1,5 @@
 .import start
-.import isr
+.import process_input
 .import __STARTUP_LOAD__
 .export __STARTUP__ : absolute = 1
 
@@ -25,4 +25,4 @@ reset_handler:
 
         .word nmi_handler
         .word reset_handler
-        .word isr
+        .word process_input

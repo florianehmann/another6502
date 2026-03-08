@@ -1,48 +1,46 @@
+.include "constants.inc"
 .include "mmio.inc"
+.include "variables.inc"
+.import terminal_output
 .export start
-
-; Variable Locations
-
-xaml    = $24                   ; Examine index low byte.
-xamh    = $25                   ; Examine index high byte.
-stl     = $26                   ; Store address low byte.
-sth     = $27                   ; Store address high byte.
-l       = $28                   ; Hex value parsing low digit.
-h       = $29                   ; Hex value parsing high digit.
-ysav    = $2A                   ; ?
-mode    = $2B                   ; $00=xam, $7F=stor, $AE=block xam
-
-in      = $0200                 ; Input buffer, until $027F
-
-kbd     = $D010                 ; PIA.A keyboard input
-kbdcr   = $D011                 ; PIA.A keyboard control register
-dsp     = $D012                 ; PIA.B display output register
-dspcr   = $D013                 ; PIA.B display control register
-
-; Modes
-
-xam     = $00                   ; Examine.
-stor    = $7B                   ; Store.
-blokxam = $AE                   ; Block examine.
-
-; Constants
-
-bs      = $DF                   ; Backspace
-cr      = $8D                   ; Carriage Return
-esc     = $9B                   ; ESC key
-prompt  = $5C                   ; Prompt character (\)
 
 .segment "CODE"
 
-start:
-reset:                          ; Set up control registers for kbd and dsp.
+reset_original:                 ; Set up control registers for kbd and dsp.
         cld
         cli
-        ldy #%0111.1111
+        ldy #%01111111
         sty dsp
-        lda #%1010.0111
+        lda #%10100111
         sta kbdcr
         sta dspcr
+
+start:
+reset:
+        cld
+        cli
+        jmp debug_end
+
+        ; debug cr handling
+        lda #$C0
+        sta dsp
+        jsr terminal_output
+debug:
+        bit kbdcr
+        bpl debug
+        lda #$00
+        sta kbdcr
+        lda kbd
+        cmp #cr
+        bne debug
+        lda #$C0
+        sta dsp
+        jsr terminal_output
+        jmp debug
+debug_end:
+
+        lda #$A7
+        ldy #$80
 
 notcr:                          ; Routine for handling keys that are not cr.
         cmp #bs
@@ -68,10 +66,13 @@ backspace:
 nextchar:
         lda kbdcr               ; Key ready?
         bpl nextchar            ; Loop until ready.
+        lda #$0
+        sta kbdcr
         lda kbd
         sta in,Y                ; Add text to buffer.
         jsr echo
         cmp #cr
+        brk
         bne notcr
         ldy #$FF                ; Reset text index.
         lda #xam
@@ -204,7 +205,14 @@ prhex:
         adc #$06                ; Add offset for letters.
 
 echo:
-        bit dsp                 ; DA bit (B7) cleared yet?
-        bmi echo                ; No, wait for display.
-        sta dsp                 ; Output character. Sets DA.
+        sta dsp
+        jsr terminal_output
+        rts
+
+at:
+        pha
+        lda #$C0
+        sta dsp
+        jsr terminal_output
+        pla
         rts

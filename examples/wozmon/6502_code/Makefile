@@ -1,5 +1,5 @@
 # Project settings
-TARGET     := echo
+TARGET     := rom
 CONFIG     := memory.cfg
 ASM_SRCS   := $(wildcard src/*.s)
 OBJ_DIR    := obj
