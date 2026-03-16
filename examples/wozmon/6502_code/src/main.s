@@ -6,15 +6,6 @@
 
 .segment "CODE"
 
-reset_original:                 ; Set up control registers for kbd and dsp.
-        cld
-        cli
-        ldy #%01111111
-        sty dsp
-        lda #%10100111
-        sta kbdcr
-        sta dspcr
-
 start:
 reset:
         cld

@@ -1,4 +1,4 @@
-"""Generate a Hello World output message."""  # noqa: INP001
+"""Generate a Hello World output message on the terminal."""  # noqa: INP001
 
 from emulator.cpu import CPU6502, run
 from emulator.memory import MemoryBlock, MemoryMap
@@ -37,11 +37,18 @@ D0 E8 E0 0E D0 F5 00
 
 
 if __name__ == "__main__":
+    # peripheral for interacting with the terminal through memory-mapped I/O
     terminal = TerminalPeripheral()
+
+    # memory containing the assembled program
     program_memory = MemoryBlock(0x1000)
     program_memory.write_bytes(0, program)
+
+    # set memory addresses for NMI, RST, and IRQ vectors to the start address of the program
     vectors = MemoryBlock(6)
     vectors.write_bytes(0, bytes.fromhex("00 10 00 10 00 10"))
+
+    # assemble memory map of system with space for zero page and stack, the program, MMIO, and the vectors
     system_memory = (MemoryMap()
         .add_block(0x0000, MemoryBlock(0x1000))
         .add_block(0x1000, program_memory)

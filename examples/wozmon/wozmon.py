@@ -38,8 +38,6 @@ def main() -> None:  # noqa: D103
         .add_block(0xD000, terminal.mmio_block)
         .add_block(0xE000, rom))
     cpu = CPU6502(memory_map)
-    start_address = (memory_map.read(0xFFFD) << 8) | memory_map.read(0xFFFC)
-    cpu.pc = start_address
     run(cpu, interrupt_hook=interrupt_hook_with_queue, max_steps=None, cycles_per_second=1e6)
     print("\r")
     print(f"A  NV-BDIZC\r")
