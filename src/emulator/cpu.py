@@ -5,7 +5,7 @@ import logging
 import time
 from collections.abc import Callable
 from functools import partial
-from typing import Any, ClassVar, Literal, Protocol, cast, runtime_checkable
+from typing import Any, ClassVar, Literal
 
 from emulator.memory import Memory
 from emulator.utils import assert_never, dec_to_bcd
@@ -34,25 +34,15 @@ class StepResult(enum.Enum):
     BRK = enum.auto()
 
 
-@runtime_checkable
-class OpcodeFunction(Protocol):
-    """A callable with generic arguments that carries an `opcode` attribute."""
-
-    opcodes: list[tuple[int, dict[str, Any]]]
-    def __call__(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401, D102
-        ...
-
-
-def opcode(opcode: int, **kwargs: Any) -> Callable[..., OpcodeFunction]:  # noqa: ANN401
+def opcode(opcode: int, **kwargs: Any) -> Callable[..., Callable[..., None]]:  # noqa: ANN401
     """Register a set of arguments to an opcode."""
-    def decorator(func: Callable[..., None]) -> OpcodeFunction:
-        func = cast("OpcodeFunction", func)
+    def decorator(func: Callable[..., None]) -> Callable[..., None]:
         if not hasattr(func, "opcodes"):
-            func.opcodes = []
-        if opcode in (op for op, _ in func.opcodes):
+            func.opcodes = []  # type: ignore[reportFunctionMemberAccess]
+        if opcode in (op for op, _ in func.opcodes):  # type: ignore[reportFunctionMemberAccess]
             msg = f"Opcode 0x{opcode:02x} has already been registered for this function."
             raise ValueError(msg)
-        func.opcodes.append((opcode, kwargs))
+        func.opcodes.append((opcode, kwargs))  # type: ignore[reportUnknownMemberType]
         return func
     return decorator
 
@@ -154,7 +144,7 @@ class CPU6502:
             attr = getattr(self, attr_name)
             func = getattr(attr, "__func__", attr)
 
-            if not isinstance(func, OpcodeFunction):
+            if not hasattr(func, "opcodes"):
                 continue
 
             for opcode, kwargs in func.opcodes:
@@ -1144,6 +1134,8 @@ def run(
         cpu: CPU to let run.
         max_steps: Maximum number of instructions to execute. If set to None there is no limit on number of
         instructions.
+        interrupt_hook: Hook to trigger interrupts in the CPU based on the state of, e.g., peripherals.
+        cycles_per_second: Roughly limit program execution speed to the specified frequency.
 
     Raises:
         RuntimeError: When maximum number of steps is reached.
