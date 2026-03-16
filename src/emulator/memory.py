@@ -94,8 +94,8 @@ class MemoryBlock(Memory):
 
         """
         self._check_address_in_bounds(start_address)
-        self._check_address_in_bounds(start_address + len(sequence))
-        self.mem[start_address:start_address + len(sequence)] = sequence
+        self._check_address_in_bounds(start_address + len(sequence) - 1)
+        self.mem[start_address:start_address + len(sequence) - 1] = sequence
 
     def write_bytes_hex(self, start_address: int, sequence: str) -> None:
         """Write a sequence of bytes written as a string of hexadecimal digits to a memory region.

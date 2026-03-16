@@ -40,13 +40,13 @@ if __name__ == "__main__":
     terminal = TerminalPeripheral()
     program_memory = MemoryBlock(0x1000)
     program_memory.write_bytes(0, program)
-    system_memory = (
-        MemoryMap()
+    vectors = MemoryBlock(6)
+    vectors.write_bytes(0, bytes.fromhex("00 10 00 10 00 10"))
+    system_memory = (MemoryMap()
         .add_block(0x0000, MemoryBlock(0x1000))
         .add_block(0x1000, program_memory)
         .add_block(0xd000, terminal.mmio_block)
-    )
+        .add_block(0xfffa, vectors))
 
     cpu = CPU6502(system_memory)
-    cpu.pc = 0x1000
     run(cpu)

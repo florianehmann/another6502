@@ -118,8 +118,11 @@ class CPU6502:
         # INDIRECT_Y only on some
     )
 
-    def __init__(self, memory: Memory) -> None:
-        """Initialize a CPU with memory."""
+    def __init__(self, memory: Memory, override_initial_pc: int | None = None) -> None:
+        """Initialize a CPU with memory.
+
+        `override_initial_pc` allows to override the initial value of the program counter.
+        """
         # Registers
         self.a: int = 0
         self.x: int = 0
@@ -136,6 +139,14 @@ class CPU6502:
         self.status |= (1 << self.STATUS_Z)
         self.status |= (1 << self.STATUS_I)
         self.status |= (1 << 5)  # unused bit of the status register is usually set
+
+        # set program counter based on reset vector
+        if override_initial_pc is not None:
+            self.pc = override_initial_pc
+        else:
+            rst_lo = self.memory.read(self.RST_VECTOR)
+            rst_hi = self.memory.read(self.RST_VECTOR + 1)
+            self.pc = (rst_hi << 8) | rst_lo
 
     def build_opcode_table(self) -> dict[int, Callable[[], None]]:
         """Return a map between opcode and method that contains the logic for the instruction."""

@@ -14,5 +14,5 @@ def memory() -> Memory:
 
 @pytest.fixture
 def cpu(memory: Memory) -> CPU6502:
-    """Return a CPU with 1K of RAM initialized to zero."""
-    return CPU6502(memory)
+    """Return a CPU with 1K of RAM initialized to zero and PC at zero."""
+    return CPU6502(memory, override_initial_pc=0)
